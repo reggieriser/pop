@@ -20,7 +20,7 @@ type Tx struct {
 	*sqlx.Tx
 }
 
-func newTX(ctx context.Context, db *dB, opts *sql.TxOptions) (*Tx, error) {
+func newTX(ctx context.Context, db *DB, opts *sql.TxOptions) (*Tx, error) {
 	t := &Tx{
 		ID: rand.Int(),
 	}

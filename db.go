@@ -7,26 +7,26 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type dB struct {
+type DB struct {
 	*sqlx.DB
 }
 
-func (db *dB) TransactionContext(ctx context.Context) (*Tx, error) {
+func (db *DB) TransactionContext(ctx context.Context) (*Tx, error) {
 	return newTX(ctx, db, nil)
 }
 
-func (db *dB) Transaction() (*Tx, error) {
+func (db *DB) Transaction() (*Tx, error) {
 	return newTX(context.Background(), db, nil)
 }
 
-func (db *dB) TransactionContextOptions(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
+func (db *DB) TransactionContextOptions(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 	return newTX(ctx, db, opts)
 }
 
-func (db *dB) Rollback() error {
+func (db *DB) Rollback() error {
 	return nil
 }
 
-func (db *dB) Commit() error {
+func (db *DB) Commit() error {
 	return nil
 }
