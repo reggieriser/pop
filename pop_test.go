@@ -426,3 +426,18 @@ type NonStandardID struct {
 	ID          int    `db:"pk"`
 	OutfacingID string `db:"id"`
 }
+
+type Employee struct {
+	ID        int     `db:"id"`
+	Name      string  `db:"name"`
+	AddressID int     `db:"address_id"`
+	Address   Address `belongs_to:"address"`
+}
+
+type Move struct {
+	ID           int      `db:"id"`
+	EmployeeID   int      `db:"employee_id"`
+	Employee     Employee `belongs_to:"employee"`
+	NewAddressID int      `db:"new_address_id"`
+	NewAddress   Address  `belongs_to:"address"`
+}

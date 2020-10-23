@@ -264,3 +264,38 @@ func Test_New_Implementation_For_BelongsTo_Ptr_Field(t *testing.T) {
 		SetEagerMode(EagerDefault)
 	})
 }
+
+func Test_Preload_BelongsTo_Nested_Objects(t *testing.T) {
+	if PDB == nil {
+		t.Skip("skipping integration tests")
+	}
+	transaction(func(tx *Connection) {
+		a := require.New(t)
+
+		employeeAddress := Address{HouseNumber: 1, Street: "Street One"}
+		a.NoError(tx.Create(&employeeAddress))
+
+		newAddress := Address{HouseNumber: 2, Street: "Street Two"}
+		a.NoError(tx.Create(&newAddress))
+
+		employee := Employee{Name: "Mark", AddressID: employeeAddress.ID}
+		a.NoError(tx.Create(&employee))
+
+		move := Move{EmployeeID: employee.ID, NewAddressID: newAddress.ID}
+		a.NoError(tx.Create(&move))
+
+		// First try an Eager (which works fine).
+		moves := []Move{}
+		a.NoError(tx.Eager("NewAddress", "Employee.Address").All(&moves))
+		a.Len(moves, 1)
+		a.Equal(newAddress.Street, moves[0].NewAddress.Street)
+		a.Equal(employeeAddress.Street, moves[0].Employee.Address.Street)
+
+		// Now try an EagerPreload (which fails).
+		movesPreload := []Move{}
+		a.NoError(tx.EagerPreload("NewAddress", "Employee.Address").All(&movesPreload))
+		a.Len(movesPreload, 1)
+		a.Equal(newAddress.Street, movesPreload[0].NewAddress.Street)
+		a.Equal(employeeAddress.Street, movesPreload[0].Employee.Address.Street)
+	})
+}

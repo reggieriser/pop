@@ -1,0 +1,3 @@
+drop_table("moves")
+
+drop_table("employees")
