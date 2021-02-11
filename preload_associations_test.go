@@ -264,3 +264,64 @@ func Test_New_Implementation_For_BelongsTo_Ptr_Field(t *testing.T) {
 		SetEagerMode(EagerDefault)
 	})
 }
+
+func Test_Preload_BelongsTo_Third_Level_Nesting(t *testing.T) {
+	if PDB == nil {
+		t.Skip("skipping integration tests")
+	}
+	transaction(func(tx *Connection) {
+		a := require.New(t)
+
+		taxiUser := User{UserName: "john", Name: nulls.NewString("John")}
+		a.NoError(tx.Create(&taxiUser))
+
+		address := Address{HouseNumber: 1, Street: "Street One"}
+		a.NoError(tx.Create(&address))
+
+		taxi := Taxi{Model: "Taurus", UserID: nulls.NewInt(taxiUser.ID), AddressID: nulls.NewInt(address.ID)}
+		a.NoError(tx.Create(&taxi))
+
+		bookUser := User{UserName: "fred", Name: nulls.NewString("Fred")}
+		a.NoError(tx.Create(&bookUser))
+
+		book := Book{Title: "My Title", UserID: nulls.NewInt(bookUser.ID), TaxiID: nulls.NewInt(taxi.ID)}
+		a.NoError(tx.Create(&book))
+
+		writer := Writer{Name: "Larry", BookID: book.ID}
+		a.NoError(tx.Create(&writer))
+
+		// Try association paths that are two levels deep with first level matching.
+		// EagerPreload works fine.
+		writers := []Writer{}
+		a.NoError(tx.EagerPreload("Book.Taxi", "Book.User").All(&writers))
+		a.Len(writers, 1)
+		a.Equal(writer.Name, writers[0].Name)
+		a.Equal(book.Title, writers[0].Book.Title)
+		a.Equal(taxi.Model, writers[0].Book.Taxi.Model)
+		a.Equal(bookUser.UserName, writers[0].Book.User.UserName)
+
+		// Try association paths that are three levels deep with first two levels matching.
+		// Eager works fine.
+		writers = []Writer{}
+		a.NoError(tx.Eager("Book.Taxi.Driver", "Book.Taxi.Address").All(&writers))
+		a.Len(writers, 1)
+		a.Equal(writer.Name, writers[0].Name)
+		a.Equal(book.Title, writers[0].Book.Title)
+		a.Equal(taxi.Model, writers[0].Book.Taxi.Model)
+		a.Equal(address.Street, writers[0].Book.Taxi.Address.Street)
+		a.NotNil(writers[0].Book.Taxi.Driver)
+		a.Equal(taxiUser.UserName, writers[0].Book.Taxi.Driver.UserName)
+
+		// Try association paths that are three levels deep with first two levels matching.
+		// EagerPreload only loads the last relationship ("Address" in this case).
+		writers = []Writer{}
+		a.NoError(tx.EagerPreload("Book.Taxi.Driver", "Book.Taxi.Address").All(&writers))
+		a.Len(writers, 1)
+		a.Equal(writer.Name, writers[0].Name)
+		a.Equal(book.Title, writers[0].Book.Title)
+		a.Equal(taxi.Model, writers[0].Book.Taxi.Model)
+		a.Equal(address.Street, writers[0].Book.Taxi.Address.Street)
+		a.NotNil(writers[0].Book.Taxi.Driver)
+		a.Equal(taxiUser.UserName, writers[0].Book.Taxi.Driver.UserName)
+	})
+}
